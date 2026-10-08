@@ -7,8 +7,9 @@ import re
 import ipaddress
 from urllib.parse import urlparse, parse_qs
 import html
+from html.parser import HTMLParser
 
-file_path = "samples/2020-05-05-phishing-email-example-01.eml"
+file_path = "samples/2020-05-05-phishing-email-example-02.eml"
 
 
 def parse_email(file_path):
@@ -163,12 +164,87 @@ def analyze_subject(subject):
 def analyze_return_path(email):
     print(email["Return-Path"])
 
+def extract_body(email):
+    return email.get_content()
+
+def analyze_body(email):
+    content = email.get_content_type()
+    ishtml = False
+    if content == "text/html":
+        ishtml = True
+    length = len(extract_body(email))
+
+    result = {
+        "content_type": content,
+        "is_html": ishtml,
+        "body_length": length
+    }
+
+    return result
+
+class MyParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.data = []
+        self.tags = []
+
+    def handle_data(self, data):
+        data = data.strip()
+        if data:
+            self.data.append(data)
+
+    def handle_starttag(self, tag, attrs):
+        self.tags.append(tag)
+
+
+def extract_visible_text(email):
+    body = extract_body(email)
+
+    parser = MyParser()
+    parser.feed(body)
+    result = parser.data
+    seperator = " "
+    x = seperator.join(result)
+    return x
+
+def analyze_body_keywords(text):
+    words_got = []
+    suspicious_body_keywords = [
+        "verify",
+        "failed",
+        "retrieve",
+        "confirm",
+        "password",
+        "account",
+        "login",
+        "suspended",
+        "urgent"
+    ]
+    for keywords in suspicious_body_keywords:
     
+        if keywords in text.lower():
+            words_got.append(keywords)
+
+    return words_got
+
+def analyze_html_body(email):
+    body = extract_body(email)
+
+    parser = MyParser()
+    parser.feed(body)
+
+    result = {
+        "visible_text": " ".join(parser.data),
+        "html_tags": parser.tags
+    }
+
+    return result
+
     
 parsed_email = parse_email(file_path)
 
-
-print(analyze_subject(decode_subject(parsed_email)))
+result = analyze_html_body(parsed_email)
+print(result)
 
 
 
