@@ -1,5 +1,7 @@
 from email import policy
+import email.utils
 from email.parser import BytesParser
+from email.header import decode_header
 import sys
 import re
 import ipaddress
@@ -105,16 +107,68 @@ def analyze_urls(url_list):
 
     return url_components
 
+def analyze_sender(email_data):
+    sender = email_data["From"]
+    parsed_data = email.utils.parseaddr(sender)
+
+    email_val = parsed_data[1]
+    display_name = parsed_data[0]
+    domain = email_val[email_val.find("@")+1:]
+    comp = {"display_name" : display_name,"email": email_val,"domain":domain}
+    return comp
+
+def check_sender_mismatch(sender_info):
+    displayn = sender_info.get("display_name")
+    domain = sender_info.get("domain")
+    flag = True
+    pattern = r"\b[a-zA-Z0-9-]+\.[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\b"
+    try:
+        cleaned_displayn = re.findall(pattern, displayn)[0]
+    except:
+        return flag
+
+    if cleaned_displayn.lower() == domain.lower():
+        flag = False
+
+    return flag
+
+def decode_subject(email):
+    piece = email["Subject"]
+    if isinstance(piece, bytes):
+        for pieces in piece:
+            if pieces != None:
+                final += pieces
+        return final
+    else:
+        return piece
+    
+def analyze_subject(subject):
+    suspicious_keywords = [
+        "warning",
+        "urgent",
+        "final notice",
+        "verify",
+        "suspended",
+        "password",
+        "account"
+    ]
+    for keywords in suspicious_keywords:
+
+        if keywords in subject.lower():
+            return True
+        else:
+            return False
+
+
+def analyze_return_path(email):
+    print(email["Return-Path"])
 
     
     
 parsed_email = parse_email(file_path)
 
-urls = extract_urls(parsed_email)
 
-urlc = analyze_urls(urls)
-print(urlc)
-
+print(analyze_subject(decode_subject(parsed_email)))
 
 
 
