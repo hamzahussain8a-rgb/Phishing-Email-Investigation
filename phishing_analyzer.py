@@ -73,11 +73,17 @@ def extract_domains(email):
                 ipaddress.ip_address(d)
             except ValueError:
                 domains.append(d)
-    print(domains)
 
+def extract_urls(email):
+    data = email.get_payload()
+    pattern = r'"?(https?://[^\s/$.?#].[^\s>"]*)'
+    urls = re.findall(pattern, data)
+    return urls
+
+    
     
 parsed_email = parse_email(file_path)
 
-extract_domains(parsed_email)
+print(extract_urls(parsed_email))
 
 # print(extract_ips(extract_received_headers(parse_email(file_path))))
