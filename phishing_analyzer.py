@@ -3,6 +3,8 @@ from email.parser import BytesParser
 import sys
 import re
 import ipaddress
+from urllib.parse import urlparse, parse_qs
+import html
 
 file_path = "samples/2020-05-05-phishing-email-example-01.eml"
 
@@ -80,10 +82,40 @@ def extract_urls(email):
     urls = re.findall(pattern, data)
     return urls
 
+def analyze_urls(url_list):
+    url_components = []
+    pattern = r"^http://|^https://"
+    for url in url_list:
+        embedded_urls = []
+        parsed = urlparse(url)
+        qps = parse_qs(html.unescape(parsed.query))
+        for qp in qps:
+            if re.findall(pattern, qps.get(qp)[0]):
+                embedded_urls.append(qps.get(qp)[0])
+        url_component = {
+            "url": url,
+            "scheme": parsed.scheme,
+            "domain": parsed.netloc,
+            "path": parsed.path,
+            "query": parsed.query,
+            "query_parameters": qps,
+            "embedded_URL" : embedded_urls
+        }
+        url_components.append(url_component)
+
+    return url_components
+
+
     
     
 parsed_email = parse_email(file_path)
 
-print(extract_urls(parsed_email))
+urls = extract_urls(parsed_email)
 
-# print(extract_ips(extract_received_headers(parse_email(file_path))))
+urlc = analyze_urls(urls)
+print(urlc)
+
+
+
+
+
