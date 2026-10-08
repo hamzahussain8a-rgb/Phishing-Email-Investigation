@@ -50,7 +50,34 @@ def extract_ips(received_headers):
                 pass
     return ip_dict
 
+def extract_domains(email):
+    pattern = r"\b[a-zA-Z0-9-]+\.[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\b"
+    domains = []
+    domain_list = []
+    header = extract_headers(email)
+    received_header = extract_received_headers(email)
+
+    for key in header:
+        value = str(header.get(key))
+        temp = re.findall(pattern, value)
+        for x in temp:
+            domain_list.append(x)
+
+    for head in received_header:
+            temp = re.findall(pattern, head)
+            for x in temp:
+                domain_list.append(x)
+    for d in domain_list:
+        if d not in domains:
+            try:
+                ipaddress.ip_address(d)
+            except ValueError:
+                domains.append(d)
+    print(domains)
+
     
+parsed_email = parse_email(file_path)
 
+extract_domains(parsed_email)
 
-print(extract_ips(extract_received_headers(parse_email(file_path))))
+# print(extract_ips(extract_received_headers(parse_email(file_path))))
